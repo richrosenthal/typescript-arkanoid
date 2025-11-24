@@ -310,6 +310,55 @@ var Paddle = /** @class */function () {
   return Paddle;
 }();
 exports.Paddle = Paddle;
+},{}],"Collision.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Collision = void 0;
+var Collision = /** @class */function () {
+  function Collision() {}
+  //check ball collision with bricks
+  Collision.prototype.isCollidingBrick = function (ball, brick) {
+    if (ball.pos.x < brick.pos.x + brick.width && ball.pos.x + ball.width > brick.pos.x && ball.pos.y < brick.pos.y + brick.height && ball.pos.y + ball.height > brick.pos.y) {
+      return true;
+    }
+    return false;
+  };
+  Collision.prototype.isCollidingBricks = function (ball, bricks) {
+    var _this = this;
+    var colliding = false;
+    bricks.forEach(function (brick, i) {
+      if (_this.isCollidingBrick(ball, brick)) {
+        ball.changeYDirection();
+        if (brick.energy === 1) {
+          bricks.splice(i, 1);
+        } else {
+          brick.energy -= 1;
+        }
+        colliding = true;
+      }
+    });
+    return colliding;
+  };
+  Collision.prototype.checkBallCollision = function (ball, paddle, view) {
+    if (ball.pos.x + ball.width > paddle.pos.x && ball.pos.x < paddle.pos.x + paddle.width && ball.pos.y + ball.height === paddle.pos.y) {
+      ball.changeYDirection();
+    }
+    //2. Check ball collision with walls
+    //Ball movement X constraints
+    if (ball.pos.x > view.canvas.width - ball.width || ball.pos.x < 0) {
+      ball.changeXDirection();
+    }
+    //BAll movement Y constraints
+    if (ball.pos.y < 0) {
+      ball.changeYDirection();
+    }
+  };
+  return Collision;
+}();
+exports.Collision = Collision;
 },{}],"images/paddle.png":[function(require,module,exports) {
 module.exports = "/paddle.f48d929a.png";
 },{}],"images/ball.png":[function(require,module,exports) {
@@ -490,6 +539,7 @@ function createBricks() {
 var _CanvasView = require("./view/CanvasView");
 var _Ball = require("./sprites/Ball");
 var _Paddle = require("./sprites/Paddle");
+var _Collision = require("./Collision");
 var _paddle = _interopRequireDefault(require("./images/paddle.png"));
 var _ball = _interopRequireDefault(require("./images/ball.png"));
 var _setup = require("./setup");
@@ -509,7 +559,7 @@ function setGameWin(view) {
   view.drawInfo('Game Won');
   gameOver = false;
 }
-function gameLoop(view, bricks, paddle, ball) {
+function gameLoop(view, bricks, paddle, ball, collision) {
   view.clear();
   view.drawBricks(bricks);
   view.drawSprite(paddle);
@@ -520,8 +570,20 @@ function gameLoop(view, bricks, paddle, ball) {
   if (paddle.isMovingLeft && paddle.pos.x > 0 || paddle.isMovingRight && paddle.pos.x < view.canvas.width - paddle.width) {
     paddle.movePaddle();
   }
+  collision.checkBallCollision(ball, paddle, view);
+  var collidingBrick = collision.isCollidingBricks(ball, bricks);
+  if (collidingBrick) {
+    score += 1;
+    view.drawScore(score);
+  }
+  //Game over when ball leaves playfield
+  if (ball.pos.y > view.canvas.height) gameOver = true;
+  //Game won 
+  if (bricks.length === 0) return setGameWin(view);
+  //return if gameover and don't run the reuqeestAnimationFrame
+  if (gameOver) return setGameOver(view);
   requestAnimationFrame(function () {
-    return gameLoop(view, bricks, paddle, ball);
+    return gameLoop(view, bricks, paddle, ball, collision);
   });
 }
 function startGame(view) {
@@ -529,6 +591,8 @@ function startGame(view) {
   score = 0;
   view.drawInfo('');
   view.drawScore(0);
+  //create a collision instance
+  var collision = new _Collision.Collision();
   // create all bricks
   var bricks = (0, _helpers.createBricks)();
   //create ball
@@ -541,12 +605,12 @@ function startGame(view) {
     x: _setup.PADDLE_STARTX,
     y: view.canvas.height - _setup.PADDLE_HEIGHT - 5
   }, _paddle.default);
-  gameLoop(view, bricks, paddle, ball);
+  gameLoop(view, bricks, paddle, ball, collision);
 }
 // Create a new view
 var view = new _CanvasView.CanvasView('#playField');
 view.initStartButton(startGame);
-},{"./view/CanvasView":"view/CanvasView.ts","./sprites/Ball":"sprites/Ball.ts","./sprites/Paddle":"sprites/Paddle.ts","./images/paddle.png":"images/paddle.png","./images/ball.png":"images/ball.png","./setup":"setup.ts","./helpers":"helpers.ts"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./view/CanvasView":"view/CanvasView.ts","./sprites/Ball":"sprites/Ball.ts","./sprites/Paddle":"sprites/Paddle.ts","./Collision":"Collision.ts","./images/paddle.png":"images/paddle.png","./images/ball.png":"images/ball.png","./setup":"setup.ts","./helpers":"helpers.ts"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
